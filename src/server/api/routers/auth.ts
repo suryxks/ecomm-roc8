@@ -1,7 +1,7 @@
 import { z } from "zod";
 import cookie from "cookie";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { getPasswordHash } from "~/utils/auth";
+import { getPasswordHash, verifyPasword } from "~/utils/auth";
 import { TRPCError } from "@trpc/server";
 
 export const authRouter = createTRPCRouter({
@@ -42,6 +42,12 @@ export const authRouter = createTRPCRouter({
         select: { id: true, userId: true },
       });
 
+      if (!session) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Error creating user and session",
+        });
+      }
       ctx.res.setHeader(
         "set-cookie",
         cookie.serialize("sessionId", session.id, {
@@ -51,14 +57,63 @@ export const authRouter = createTRPCRouter({
           sameSite: "lax",
         }),
       );
-      if (!session) {
+      return {
+        session,
+      };
+    }),
+
+  login: publicProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+        password: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { email, password } = input;
+      const user = await ctx.prisma.user.findFirst({
+        where: { email: email },
+        select: {
+          id: true,
+          password: {
+            select: {
+              hash: true,
+            },
+          },
+        },
+      });
+      if (!user) {
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Error creating user and session",
+          code: "NOT_FOUND",
+          message: "User not found",
         });
       }
+      const isPasswordvalid = await verifyPasword(
+        user.password?.hash ?? "",
+        password,
+      );
+      if (!isPasswordvalid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid credentials",
+        });
+      }
+      const session = await ctx.prisma.session.create({
+        data: {
+          userId: user.id,
+        },
+      });
+      ctx.res.setHeader(
+        "set-cookie",
+        cookie.serialize("sessionId", session.id, {
+          secure: true,
+          httpOnly: true,
+          path: "/",
+          sameSite: "lax",
+        }),
+      );
       return {
-        success: true,
+        userId: user.id,
       };
     }),
 
