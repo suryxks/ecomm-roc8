@@ -46,6 +46,7 @@ const PaginationLink = ({
   size = "icon",
   ...props
 }: PaginationLinkProps) => (
+  //@ts-expect-error link types mismatch fix it later
   <Link
     aria-current={isActive ? "page" : undefined}
     className={cn(
