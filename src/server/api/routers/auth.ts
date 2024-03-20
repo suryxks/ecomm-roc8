@@ -201,7 +201,7 @@ export const authRouter = createTRPCRouter({
         await ctx.prisma.verification.delete({
           where: {
             target_type: {
-              target: input.email,
+              target: ctx.user.email,
               type: "Onboarding",
             },
           },

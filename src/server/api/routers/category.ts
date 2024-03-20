@@ -1,11 +1,5 @@
 import { z } from "zod";
-import cookie from "cookie";
-import {
-  createTRPCRouter,
-  publicProcedure,
-  privateProcedure,
-} from "~/server/api/trpc";
-import { getPasswordHash, verifyPasword } from "~/utils/auth";
+import { createTRPCRouter, privateProcedure } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 
 const CATEGORIES_PER_PAGE = 6;
