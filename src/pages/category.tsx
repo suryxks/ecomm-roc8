@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { api } from "~/utils/api";
-import { CategoryPagesNav } from "~/components/ui/categoryPagination";
+import { CategoryPagesNav } from "../components/ui/CategoryPagination";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
 import { Oval } from "react-loader-spinner";
