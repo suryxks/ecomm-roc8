@@ -25,7 +25,7 @@ export default function CategoriesPage() {
     onMutate: async () => await router.push("login"),
   });
   if (error?.shape?.data.httpStatus == 401) {
-    router.push("/login");
+    void router.push("/login");
   }
   const { data: user } = api.auth.getUserId.useQuery(null, {
     refetchOnWindowFocus: false,
