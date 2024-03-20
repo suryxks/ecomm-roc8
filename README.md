@@ -21,3 +21,4 @@ Password are hashed and stored in database using [bycrypt](https://www.npmjs.com
 Email verification is done using [@epic-web/totp](https://github.com/epicweb-dev/totp) which gives utilities to Create and verify cryptographically secure Time-based One-time Passwords (TOTP) using the HMAC-based One-time Password [(HOTP)](https://www.ietf.org/rfc/rfc4226.txt) algorithm
 
 ## DB design
+![Data base design](https://github.com/suryxks/ecomm-roc8/assets/71174744/c44b27e5-3b7e-4a44-ade5-c2384e22a968)
