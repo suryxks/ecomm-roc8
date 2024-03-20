@@ -19,6 +19,7 @@ model User{
     password Password?
     sessions Session[]
     categories Category[]
+    isVerified Boolean @default(false)
 }
 
 model Password{
@@ -30,6 +31,8 @@ model Password{
 model Category{
     id String @id @default(uuid())
     name String
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
     users User[]
 }
 
@@ -42,3 +45,34 @@ model Session{
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 } 
+
+model Verification {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  /// The type of verification, e.g. "email" or "phone"
+  type String
+
+  /// The thing we're trying to verify, e.g. a user's email or phone number
+  target String
+
+  /// The secret key used to generate the otp
+  secret String
+
+  /// The algorithm used to generate the otp
+  algorithm String
+
+  /// The number of digits in the otp
+  digits Int
+
+  /// The number of seconds the otp is valid for
+  period Int
+
+  /// The valid characters for the otp
+  charSet String
+
+  /// When it's safe to delete this verification
+  expiresAt DateTime?
+
+  @@unique([target, type])
+}

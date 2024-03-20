@@ -48,6 +48,7 @@ export const createTRPCContext = (_opts: CreateNextContextOptions) => {
     prisma: db,
     session: _opts.req.headers.cookie,
     res: _opts.res,
+    req: _opts.req,
   };
 };
 
@@ -104,7 +105,7 @@ export const createTRPCRouter = t.router;
 export const publicProcedure = t.procedure;
 
 const enforceAuth = t.middleware(async ({ ctx, next }) => {
-  const session = ctx.session || "";
+  const session = ctx.session ?? "";
   const Cookies = cookie.parse(session);
   const sessionId = Cookies.sessionId;
   if (!sessionId) {
@@ -113,9 +114,29 @@ const enforceAuth = t.middleware(async ({ ctx, next }) => {
       code: "UNAUTHORIZED",
     });
   }
-
+  const user = await ctx.prisma.user.findFirst({
+    where: {
+      sessions: {
+        some: {
+          id: sessionId,
+        },
+      },
+    },
+    select: { id: true, email: true, name: true },
+  });
+  if (!user) {
+    throw new TRPCError({
+      message: "User not found",
+      code: "UNAUTHORIZED",
+    });
+  }
   return next({
-    ctx,
+    ctx: {
+      ...ctx,
+      sessionId: sessionId,
+      userId: user.id,
+      user: user,
+    },
   });
 });
 export const privateProcedure = t.procedure.use(enforceAuth);

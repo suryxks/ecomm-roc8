@@ -17,6 +17,8 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "../components/ui/input-otp";
+import { api } from "~/utils/api";
+import { useRouter } from "next/router";
 
 const FormSchema = z.object({
   pin: z.string().min(6, {
@@ -25,22 +27,19 @@ const FormSchema = z.object({
 });
 
 export default function VerifyOTP() {
+  const router = useRouter();
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       pin: "",
     },
   });
-
+  const { mutate } = api.auth.verifyUser.useMutation({
+    onSuccess: async () => router.push("/category?page=1"),
+  });
   function onSubmit(data: z.infer<typeof FormSchema>) {
-    // toast({
-    //   title: "You submitted the following values:",
-    //   description: (
-    //     <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-    //       <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-    //     </pre>
-    //   ),
-    // });
+    const code = data.pin;
+    mutate({ code });
   }
 
   return (

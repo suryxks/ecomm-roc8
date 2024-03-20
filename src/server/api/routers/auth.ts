@@ -1,8 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { z } from "zod";
 import cookie from "cookie";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  privateProcedure,
+  publicProcedure,
+} from "~/server/api/trpc";
 import { getPasswordHash, verifyPasword } from "~/utils/auth";
 import { TRPCError } from "@trpc/server";
+import { generateTOTP, verifyTOTP } from "@epic-web/totp";
+import { Resend } from "resend";
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const authRouter = createTRPCRouter({
   signup: publicProcedure
@@ -39,7 +50,7 @@ export const authRouter = createTRPCRouter({
             },
           },
         },
-        select: { id: true, userId: true },
+        select: { id: true, userId: true, user: { select: { email: true } } },
       });
 
       if (!session) {
@@ -57,6 +68,30 @@ export const authRouter = createTRPCRouter({
           sameSite: "lax",
         }),
       );
+
+      const { otp, ...verificationConfig } = generateTOTP({
+        algorithm: "SHA256",
+        period: 10 * 60,
+        digits: 8,
+      });
+      await resend.emails.send({
+        from: "surya@skillhive.in",
+        to: session.user.email,
+        subject: "wellcome to Ecommerce",
+        text: `Here is your otp ${otp} to verify your email`,
+      });
+      const type = "onboarding";
+      const verificationData = {
+        type,
+        target: email,
+        ...verificationConfig,
+        expiresAt: new Date(Date.now() + verificationConfig.period * 1000),
+      };
+      await ctx.prisma.verification.upsert({
+        where: { target_type: { target: email, type } },
+        create: verificationData,
+        update: verificationData,
+      });
       return {
         session,
       };
@@ -117,22 +152,75 @@ export const authRouter = createTRPCRouter({
       };
     }),
 
-  create: publicProcedure
-    .input(z.object({ name: z.string().min(1) }))
-    .mutation(async ({ ctx, input }) => {
-      // simulate a slow db call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      return ctx.prisma.category.create({
-        data: {
-          name: input.name,
+  getUserId: privateProcedure.query(async ({ ctx }) => {
+    return {
+      userId: ctx.userId,
+    };
+  }),
+  getUser: privateProcedure.query(async ({ ctx }) => {
+    return {
+      user: ctx.user,
+    };
+  }),
+  verifyUser: privateProcedure
+    .input(
+      z.object({
+        code: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const verificationConfig = await ctx.prisma.verification.findUnique({
+        select: {
+          secret: true,
+          period: true,
+          digits: true,
+          algorithm: true,
+          charSet: true,
+        },
+        where: {
+          target_type: {
+            target: ctx.user.email,
+            type: "Onboarding",
+          },
         },
       });
-    }),
+      if (!verificationConfig) {
+        new TRPCError({
+          code: "CONFLICT",
+          message: "Invalid code",
+        });
+      }
 
-  getLatest: publicProcedure.query(({ ctx }) => {
-    return ctx.prisma.user.findFirst({
-      orderBy: { created_at: "desc" },
-    });
+      const isValid =
+        verificationConfig &&
+        verifyTOTP({
+          otp: input.code,
+          ...verificationConfig,
+        });
+      if (isValid) {
+        await ctx.prisma.verification.delete({
+          where: {
+            target_type: {
+              target: input.email,
+              type: "Onboarding",
+            },
+          },
+        });
+      }
+      return {
+        isValid,
+      };
+    }),
+  logout: publicProcedure.mutation(async ({ ctx }) => {
+    ctx.res.setHeader(
+      "set-cookie",
+      cookie.serialize("sessionId", "", {
+        secure: true,
+        httpOnly: true,
+        path: "/",
+        sameSite: "lax",
+        maxAge: 0,
+      }),
+    );
   }),
 });
