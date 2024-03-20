@@ -77,7 +77,7 @@ export const authRouter = createTRPCRouter({
       await resend.emails.send({
         from: "surya@skillhive.in",
         to: session.user.email,
-        subject: "wellcome to Ecommerce",
+        subject: "Welcome to Ecommerce",
         text: `Here is your otp ${otp} to verify your email`,
       });
       const type = "onboarding";
