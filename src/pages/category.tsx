@@ -27,9 +27,7 @@ export default function CategoriesPage() {
   if (error?.shape?.data.httpStatus == 401) {
     void router.push("/login");
   }
-  const { data: user } = api.auth.getUserId.useQuery(null, {
-    refetchOnWindowFocus: false,
-  });
+  const { data: user } = api.auth.getUserId.useQuery();
   const ctx = api.useUtils();
   const { mutate } = api.category.selectCategory.useMutation({
     onMutate: async (currentCategory) => {
@@ -39,6 +37,7 @@ export default function CategoriesPage() {
           { page: currentPage },
           {
             ...data,
+            //@ts-expect-error fix later
             categories:
               data?.categories !== undefined
                 ? data.categories.map((category) => {
