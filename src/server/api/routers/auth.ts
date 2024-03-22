@@ -197,7 +197,13 @@ export const authRouter = createTRPCRouter({
           otp: input.code,
           ...verificationConfig,
         });
-      if (isValid) {
+      if (!isValid) {
+        new TRPCError({
+          message: "OTP invalid",
+          code: "CONFLICT",
+        });
+      }
+      try {
         await ctx.prisma.verification.delete({
           where: {
             target_type: {
@@ -206,7 +212,10 @@ export const authRouter = createTRPCRouter({
             },
           },
         });
+      } catch (error) {
+        console.log(error);
       }
+
       return {
         isValid,
       };

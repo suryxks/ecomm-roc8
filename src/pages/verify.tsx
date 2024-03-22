@@ -36,6 +36,8 @@ export default function VerifyOTP() {
   });
   const { mutate } = api.auth.verifyUser.useMutation({
     onSuccess: async () => router.push("/category?page=1"),
+    onError: (error) =>
+      form.setError("pin", { type: "validate", message: error.message }),
   });
   function onSubmit(data: z.infer<typeof FormSchema>) {
     const code = data.pin;

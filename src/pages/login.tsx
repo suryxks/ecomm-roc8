@@ -27,15 +27,22 @@ type SignupForm = z.infer<typeof formSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-
+  const form = useForm<SignupForm>({
+    resolver: zodResolver(formSchema),
+  });
   const { mutate, isPending } = api.auth.login.useMutation({
     onSuccess: async () => {
       await router.push("/category?page=1");
     },
-  });
-
-  const form = useForm<SignupForm>({
-    resolver: zodResolver(formSchema),
+    onError: (error) => {
+      form.setError(
+        "root",
+        { type: "Invalid", message: error.message },
+        {
+          shouldFocus: true,
+        },
+      );
+    },
   });
 
   const onSubmit: SubmitHandler<{
@@ -95,6 +102,11 @@ export default function LoginPage() {
             "LOGIN"
           )}
         </Button>
+        {form.formState.errors.root && (
+          <p className="text-md	 text-semibold mx-auto text-red-700">
+            {form.formState.errors.root.message}
+          </p>
+        )}
         <div className="mx-auto flex gap-1">
           <div>Don’t have an Account? </div>
           <Link href="/signup" className="font-bold">

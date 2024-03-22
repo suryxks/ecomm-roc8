@@ -1,17 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  FormSubmitHandler,
-  useForm,
-  type SubmitHandler,
-} from "react-hook-form";
+import { useForm, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
-import { generateTOTP } from "@epic-web/totp";
 import { Button } from "../components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -36,14 +30,22 @@ type LoginForm = z.infer<typeof formSchema>;
 
 export default function SignupPage() {
   const router = useRouter();
+  const form = useForm<LoginForm>({
+    resolver: zodResolver(formSchema),
+  });
   const { mutate, isPending } = api.auth.signup.useMutation({
     onSuccess: async ({ session }) => {
       await router.push("/verify");
     },
-  });
-
-  const form = useForm<LoginForm>({
-    resolver: zodResolver(formSchema),
+    onError: (error) => {
+      form.setError(
+        "root",
+        { type: "validate", message: error.message },
+        {
+          shouldFocus: true,
+        },
+      );
+    },
   });
 
   const onSubmit: SubmitHandler<{
@@ -114,6 +116,11 @@ export default function SignupPage() {
             "CREATE ACCOUNT"
           )}
         </Button>
+        {form.formState.errors.root && (
+          <p className="text-md	 text-semibold mx-auto text-red-700">
+            {form.formState.errors.root.message}
+          </p>
+        )}
         <div className="mx-auto flex gap-1">
           <div>Have an Account? </div>
           <Link href="/login" className="font-bold">
