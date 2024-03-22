@@ -1,0 +1,64 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table User {
+  id String [pk]
+  name String [not null]
+  email String [unique, not null]
+  created_at DateTime [default: `now()`, not null]
+  updated_at DateTime [not null]
+  password Password
+  sessions Session [not null]
+  categories Category [not null]
+  isVerified Boolean [not null, default: false]
+}
+
+Table Password {
+  hash String [not null]
+  userId String [unique, not null]
+  user User [not null]
+}
+
+Table Category {
+  id String [pk]
+  name String [not null]
+  created_at DateTime [default: `now()`, not null]
+  updated_at DateTime [not null]
+  users User [not null]
+}
+
+Table Session {
+  id String [pk]
+  expiresAt DateTime
+  userId String [not null]
+  user User [not null]
+  created_at DateTime [default: `now()`, not null]
+  updated_at DateTime [not null]
+}
+
+Table Verification {
+  id String [pk]
+  createdAt DateTime [default: `now()`, not null]
+  type String [not null, note: 'The type of verification, e.g. "email" or "phone"']
+  target String [not null, note: 'The thing we\'re trying to verify, e.g. a user\'s email or phone number']
+  secret String [not null, note: 'The secret key used to generate the otp']
+  algorithm String [not null, note: 'The algorithm used to generate the otp']
+  digits Int [not null, note: 'The number of digits in the otp']
+  period Int [not null, note: 'The number of seconds the otp is valid for']
+  charSet String [not null, note: 'The valid characters for the otp']
+  expiresAt DateTime [note: 'When it\'s safe to delete this verification']
+
+  indexes {
+    (target, type) [unique]
+  }
+}
+
+Table CategoryToUser {
+  categoriesId String [ref: > Category.id]
+  usersId String [ref: > User.id]
+}
+
+Ref: Password.userId - User.id [delete: Cascade]
+
+Ref: Session.userId > User.id [delete: Cascade]
